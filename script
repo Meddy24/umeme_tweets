@@ -1,0 +1,61 @@
+library(tidyverse)
+library(tidytext)
+library(rtweet)
+library(wordcloud2)
+
+
+tweet_df <- get_timeline("@UmemeLtd", n = 10000)
+
+tweet_df %>%
+  # create a unique ID for each tweet
+  mutate(ID = 1:nrow(tweet_df)) %>%
+  # tokenize to words
+  unnest_tokens(input = 'text',
+                output = 'word') %>%
+  # merge with sentiment lexicon
+  inner_join(get_sentiments('bing')) %>%
+  group_by(ID) %>%
+  summarize(positive_words = sum(sentiment == 'positive'),
+            negative_words = sum(sentiment == 'negative'),
+            tweet_sentiment = (positive_words - negative_words) / (positive_words + negative_words)) %>%
+  ggplot(mapping = aes(x = tweet_sentiment)) +
+  geom_histogram(fill = '#9925be') +
+  theme_minimal() +
+  labs(x = 'Tweet Sentiment', y = 'Number of Tweets',
+       title = 'Sentiment of Umemes last 10000 tweets',
+       caption = 'bing')
+
+umeme <- tweet_df %>%
+  unnest_tokens(input = 'text', output = 'word') %>%
+  count(word) %>%
+  anti_join(get_stopwords()) %>%
+  # remove filler words and the potus handle itself
+  filter(!(word %in% c('rt', 'https', 't.co','dk','lb','cm','jn','rb','pn','ko','dm')),
+         n > 50) %>%
+  # wordcloud2() needs a column called freq
+  rename(freq = n) %>%
+  wordcloud2()
+
+friends <- get_friends("rutayisire_")
+
+# umeme 
+
+p1 <- umeme %>% filter(word %in% c('najjera','kawempe','ntinda','kyanja','buwate','namugongo','kamuli','kasangati','kololo')) %>%
+  ggplot(aes(reorder(x =word,-n),n)) +
+  geom_col(fill = '#2596be')+
+  labs(title = 'Most mentioned Locations ',y = 'mentions',x = ' ')+
+  geom_text(aes(label = n), vjust = 1.5, colour = "white")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+p2 <- umeme %>% filter(word %in% c('restored','regret','outrage','planned','sorry','inconveniences')) %>%
+  ggplot(aes(reorder(x =word,-n),n)) +
+  geom_col(fill = '#49be25')+
+  labs(title = 'Counts of select words ',y = 'mentions',x = ' ')+
+  geom_text(aes(label = n), vjust = 1.5, colour = "white")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+p1/p2
+
+ggsave('summary.png',width = 6,height = 4)
