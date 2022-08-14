@@ -44,6 +44,21 @@ tweet_df %>%
        title = 'Sentiment of Umemes last 10000 tweets',
        caption = 'bing')
 
+## counts of the scored words 
+umeme_bing <- umeme %>%
+  inner_join(get_sentiments("bing"))
+
+umeme_bing %>%
+  filter(n > 20) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill=sentiment)) +
+  theme_fivethirtyeight() +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  ylab("Word Count") +
+  ggtitle("Word Usage by Umeme", subtitle = "Sentiment Analysis Using 
+Bing et al.")
 
 # umeme location  
 
